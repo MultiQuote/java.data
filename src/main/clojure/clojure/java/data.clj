@@ -25,6 +25,20 @@
 (defn- get-property-descriptors [clazz]
   (.getPropertyDescriptors (java.beans.Introspector/getBeanInfo clazz)))
 
+(defn- list-property? [prop-descriptor]
+  (= java.util.List (.getPropertyType prop-descriptor)))
+
+(defn- boxed-boolean-property? [prop-descriptor]
+  (= Boolean (.getPropertyType prop-descriptor)))
+
+(defn- type-parameter
+  "Get the type parameter for a the generic return type of a method."
+  [method]
+  (-> method
+      (.getGenericReturnType)
+      (.getActualTypeArguments)
+      (first)))
+
 ;; getters
 
 (defn- is-getter [method]
@@ -34,13 +48,24 @@
   (fn [instance]
     (from-java (.invoke method instance nil))))
 
-(defn- add-getter-fn [the-map prop-descriptor]
-  (let [name (.getName prop-descriptor)
+(defn- boxed-boolean-getter
+  "Construct the getter name from the property and return the getter from 'class'."
+  [clazz property-name]
+  (let [getter-name (str "is" (.toUpperCase (subs property-name 0 1)) (subs property-name 1 (count property-name)))]
+    (.getDeclaredMethod clazz getter-name nil)))
+
+(defn- add-getter-fn
+  "JDK > 1.8 has a documented bug in the reflection API that means getReadMethod returns null for property descriptors
+  of type Boolean that correctly begin with 'is'. The only solution is a rather ugly workaround where we construct the
+  method name from the property name and use getDeclaredMethod on the owner class."
+  [the-map prop-descriptor clazz]
+  (let [name   (.getName prop-descriptor)
         method (.getReadMethod prop-descriptor)]
     (if (and (is-getter method) (not (= "class" name)))
       (assoc the-map (keyword name) (make-getter-fn method))
-      the-map)))
-
+      (if (boxed-boolean-property? prop-descriptor)
+        (assoc the-map (keyword name) (make-getter-fn (boxed-boolean-getter clazz name)))
+        the-map))))
 
 ;; setters
 
@@ -54,12 +79,23 @@
     (fn [instance value]
       (.invoke method instance (into-array [(to-java (get-setter-type method) value)]))))
 
-(defn- add-setter-fn [the-map prop-descriptor]
-  (let [name (.getName prop-descriptor)
+(defn- make-list-setter-fn
+  [list-method]
+  (fn [instance values]
+    (let [array-list (.invoke list-method instance nil)]
+      (doseq [value values]
+        (.add array-list (to-java (type-parameter list-method) value))))))
+
+(defn- add-setter-fn
+  "JAXB doesn't generate setters for lists so we need to modify the default add-setter-fn and then intern it."
+  [the-map prop-descriptor]
+  (let [name   (.getName prop-descriptor)
         method (.getWriteMethod prop-descriptor)]
     (if (is-setter method)
       (assoc the-map (keyword name) (make-setter-fn method))
-      the-map)))
+      (if (list-property? prop-descriptor)
+        (assoc the-map (keyword name) (make-list-setter-fn (.getReadMethod prop-descriptor)))
+        the-map))))
 
 (defn- add-array-methods [acls]
   (let [cls (.getComponentType acls)
@@ -131,8 +167,8 @@
   (let [clazz (.getClass instance)]
     (if (.isArray clazz)
       ((:from (add-array-methods clazz))
-       instance)
-      (let [getter-map (reduce add-getter-fn {} (get-property-descriptors clazz))]
+        instance)
+      (let [getter-map (reduce #(add-getter-fn %1 %2 clazz) {} (get-property-descriptors clazz))]
         (into {} (for [[key getter-fn] (seq getter-map)] [key (getter-fn instance)]))))))
 
 
