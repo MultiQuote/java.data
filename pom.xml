@@ -1,9 +1,10 @@
-<?xml version="1.0" encoding="UTF-8"?><project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>adb</groupId>
   <artifactId>java.data</artifactId>
   <packaging>jar</packaging>
-  <version>0.1.2-SNAPSHOT</version>
+  <version>0.1.2</version>
   <name>java.data</name>
   <description>A fork of java.data with fixes for JAXB source generation issues.</description>
   <licenses>
@@ -12,15 +13,14 @@
     </license>
   </licenses>
   <scm>
-    <connection>scm:git:git://github.com/dkmarley/java.data.git</connection>
-    <developerConnection>scm:git:ssh://git@github.com/dkmarley/java.data.git</developerConnection>
-    <tag>a6eee35cc7088d09c63a70111893dce9c1983a0d
-</tag>
-    <url>https://github.com/dkmarley/java.data</url>
+    <url>https://github.com/MultiQuote/java.data</url>
+    <connection>scm:git:git://github.com/MultiQuote/java.data.git</connection>
+    <developerConnection>scm:git:ssh://git@github.com/MultiQuote/java.data.git</developerConnection>
+    <tag>2063d9201d56c6335c9fe538d5a4e951952c6cee</tag>
   </scm>
   <build>
     <sourceDirectory>src/main/clojure</sourceDirectory>
-    <testSourceDirectory>test</testSourceDirectory>
+    <testSourceDirectory>src/test/clojure</testSourceDirectory>
     <resources>
       <resource>
         <directory>resources</directory>
@@ -33,7 +33,27 @@
     </testResources>
     <directory>target</directory>
     <outputDirectory>target/classes</outputDirectory>
-    <plugins/>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>1.7</version>
+        <executions>
+          <execution>
+            <id>add-test-source</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>src/test/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
   <repositories>
     <repository>
@@ -48,7 +68,7 @@
     </repository>
     <repository>
       <id>clojars</id>
-      <url>https://clojars.org/repo/</url>
+      <url>https://repo.clojars.org/</url>
       <snapshots>
         <enabled>true</enabled>
       </snapshots>

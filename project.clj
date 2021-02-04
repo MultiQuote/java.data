@@ -1,4 +1,4 @@
-(defproject adb/java.data "0.1.2"
+(defproject adb/java.data "0.1.3-SNAPSHOT"
   :description "A fork of java.data with fixes for JAXB source generation issues."
   :license {:name "Eclipse Public License"}
   :dependencies [[org.clojure/clojure "1.8.0"]
